@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EconLog — CLP Tracker</title>
+<style>
+  :root {
+    --bg:#0f172a; --card:#fff; --accent:#2563eb; --accent-dark:#1d4ed8;
+    --ok:#16a34a; --muted:#64748b; --line:#e2e8f0;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(160deg,#1e293b,#0f172a);min-height:100vh;display:flex;
+    justify-content:center;padding:16px;color:#0f172a}
+  .shell{width:100%;max-width:480px}
+  .card{background:var(--card);border-radius:20px;padding:22px 20px 28px;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#38bdf8);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:18px}
+  h1{font-size:20px;margin:0;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin:2px 0 18px}
+  fieldset{border:0;padding:0;margin:0}
+  legend,.label{display:block;font-size:13px;font-weight:700;color:#334155;margin:18px 0 8px;
+    text-transform:uppercase;letter-spacing:.04em;padding:0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .opt,.chip{position:relative}
+  .opt input,.chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+  .opt label{display:flex;align-items:center;justify-content:center;text-align:center;padding:13px 8px;
+    border:2px solid var(--line);border-radius:12px;font-size:14px;font-weight:600;color:#334155;
+    cursor:pointer;transition:all .12s ease;user-select:none;min-height:48px}
+  .opt input:checked+label{border-color:var(--accent);background:#eff6ff;color:var(--accent-dark)}
+  .chip label{display:flex;align-items:center;justify-content:center;padding:14px 0;
+    border:2px solid var(--line);border-radius:999px;font-weight:700;font-size:15px;color:#334155;
+    cursor:pointer;transition:all .12s ease;min-height:48px}
+  .chip input:checked+label{border-color:var(--ok);background:#f0fdf4;color:var(--ok)}
+  .check label{justify-content:flex-start;gap:8px;padding-left:12px}
+  .check label::before{content:"";display:inline-block;width:20px;height:20px;flex:0 0 20px;
+    border:2px solid #cbd5e1;border-radius:6px;text-align:center;line-height:16px;
+    font-weight:800;font-size:14px;color:transparent}
+  .check input:checked+label::before{content:"✓";border-color:var(--ok);color:var(--ok)}
+  .opt input:focus-visible+label,.chip input:focus-visible+label{
+    outline:3px solid var(--accent);outline-offset:2px}
+  input[type=text],input[type=number],input[type=date],input[type=time]{
+    width:100%;padding:14px;border:2px solid var(--line);border-radius:12px;font-size:16px;
+    outline:none;transition:border .12s}
+  input:focus{border-color:var(--accent)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .submit{width:100%;margin-top:24px;padding:16px;border:none;border-radius:14px;background:var(--accent);
+    color:#fff;font-size:17px;font-weight:800;cursor:pointer;transition:background .15s,transform .05s;min-height:52px}
+  .submit:active{transform:scale(.985)}
+  .submit:disabled{opacity:.6;cursor:default}
+  .hint{font-size:12px;color:var(--muted);margin-top:10px;text-align:center}
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.85);display:none;align-items:center;
+    justify-content:center;padding:20px;z-index:50}
+  .overlay.show{display:flex}
+  .done{background:#fff;border-radius:20px;padding:34px 26px;text-align:center;max-width:340px;
+    width:100%;animation:pop .25s ease}
+  @keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.done{animation:none}}
+  .tick{width:70px;height:70px;border-radius:50%;background:#f0fdf4;border:3px solid var(--ok);
+    color:var(--ok);font-size:38px;font-weight:800;display:flex;align-items:center;
+    justify-content:center;margin:0 auto 16px}
+  .done h2{margin:0 0 6px;font-size:20px}
+  .done p{color:var(--muted);font-size:14px;margin:0 0 20px}
+  .done button{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);
+    color:#fff;font-weight:700;font-size:15px;cursor:pointer;min-height:48px}
+  .err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:10px;
+    padding:10px 12px;font-size:13px;margin-top:14px;display:none}
+  .err.show{display:block}
+  .queued{background:#fffbeb;color:#92400e;border:1px solid #fde68a;border-radius:10px;
+    padding:10px 12px;font-size:13px;margin-top:14px;display:none}
+  .queued.show{display:block}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <div class="brand"><div class="logo" aria-hidden="true">E</div><h1>EconLog</h1></div>
+      <p class="sub">Log this collaborative planning session in under 15 seconds.</p>
+
+      <div class="queued" id="queuedBox" role="status"></div>
+
+      <form id="clpForm" novalidate>
+        <fieldset>
+          <legend>Curriculum Level</legend>
+          <div class="grid">
+            <div class="opt"><input type="radio" name="level" id="l1" value="F3 Econ"><label for="l1">F3 Econ</label></div>
+            <div class="opt"><input type="radio" name="level" id="l2" value="F4 DSE"><label for="l2">F4 DSE</label></div>
+            <div class="opt"><input type="radio" name="level" id="l3" value="F5 DSE"><label for="l3">F5 DSE</label></div>
+            <div class="opt"><input type="radio" name="level" id="l4" value="F6 DSE"><label for="l4">F6 DSE</label></div>
+            <div class="opt"><input type="radio" name="level" id="l5" value="IB1"><label for="l5">IB1</label></div>
+            <div class="opt"><input type="radio" name="level" id="l6" value="IB2"><label for="l6">IB2</label></div>
+            <div class="opt" style="grid-column:1/-1"><input type="radio" name="level" id="l7" value="Others"><label for="l7">Others — dept. meeting</label></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Who attended? <span class="sr">Select all that apply</span></legend>
+          <div class="grid">
+            <div class="opt check"><input type="checkbox" name="teacher" id="t1" value="Peggy"><label for="t1">Peggy</label></div>
+            <div class="opt check"><input type="checkbox" name="teacher" id="t2" value="Fanny"><label for="t2">Fanny</label></div>
+            <div class="opt check"><input type="checkbox" name="teacher" id="t3" value="Justin"><label for="t3">Justin</label></div>
+            <div class="opt check"><input type="checkbox" name="teacher" id="t4" value="Jason"><label for="t4">Jason</label></div>
+            <div class="opt check"><input type="checkbox" name="teacher" id="t5" value="Elaine"><label for="t5">Elaine</label></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Duration</legend>
+          <div class="chips">
+            <div class="chip"><input type="radio" name="duration" id="d1" value="15"><label for="d1">15m</label></div>
+            <div class="chip"><input type="radio" name="duration" id="d2" value="30"><label for="d2">30m</label></div>
+            <div class="chip"><input type="radio" name="duration" id="d3" value="45"><label for="d3">45m</label></div>
+            <div class="chip"><input type="radio" name="duration" id="d4" value="60"><label for="d4">60m</label></div>
+          </div>
+          <div class="chips" style="grid-template-columns:1fr;margin-top:8px">
+            <div class="chip"><input type="radio" name="duration" id="dCustom" value="custom"><label for="dCustom">Custom…</label></div>
+          </div>
+          <div id="customWrap" style="display:none;margin-top:10px">
+            <label class="sr" for="customMins">Meeting length in minutes</label>
+            <input type="number" id="customMins" min="1" max="600" step="1" disabled
+                   placeholder="Enter minutes (e.g. 55)" inputmode="numeric">
+            <p class="hint" id="customPreview" style="margin-top:6px" aria-live="polite"></p>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>When</legend>
+          <div class="chips" style="grid-template-columns:1fr">
+            <div class="chip"><input type="checkbox" id="backdate"><label for="backdate">Not today…</label></div>
+          </div>
+          <div id="dateWrap" style="display:none;margin-top:10px">
+            <label class="sr" for="sessionDate">Session date</label>
+            <input type="date" id="sessionDate" disabled>
+            <label class="sr" for="startTime">Start time</label>
+            <input type="time" id="startTime" value="09:00" disabled style="margin-top:8px">
+            <p class="hint" id="ayHint" style="margin-top:6px" aria-live="polite"></p>
+          </div>
+        </fieldset>
+
+        <label class="label" for="topic">Topic Focus</label>
+        <input type="text" id="topic" name="topic" autocomplete="off"
+               placeholder="e.g. Elasticity past-paper marking">
+
+        <div class="err" id="errBox" role="alert"></div>
+
+        <button type="submit" class="submit" id="submitBtn">Log Session ✓</button>
+        <p class="hint" id="autoHint">Date &amp; time are added automatically.</p>
+      </form>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="doneTitle">
+    <div class="done">
+      <div class="tick" aria-hidden="true">✓</div>
+      <h2 id="doneTitle">Logged!</h2>
+      <p id="doneMsg">Your CLP session has been recorded.</p>
+      <button id="againBtn">Log another</button>
+    </div>
+  </div>
+
+<script>
+  /* ══ FILL THESE TWO IN ══════════════════════════════════════ */
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxpUruUk_aScSvO3n7-lR16eTyWK9x95O70lOYt7xBul85HSLVayZNE5h3Fvgob9pdZXA/exec";                                  // the /exec URL
+  const SHARED_SECRET = "ILOVEECON";   // must match Code.gs
+  /* ══════════════════════════════════════════════════════════ */
+
+  const QUEUE_KEY = 'econlog_queue';
+  const form = document.getElementById('clpForm');
+  const btn = document.getElementById('submitBtn');
+  const errBox = document.getElementById('errBox');
+  const overlay = document.getElementById('overlay');
+  const doneMsg = document.getElementById('doneMsg');
+  const againBtn = document.getElementById('againBtn');
+  const queuedBox = document.getElementById('queuedBox');
+
+  const customWrap = document.getElementById('customWrap');
+  const customMins = document.getElementById('customMins');
+  const customPreview = document.getElementById('customPreview');
+  const backdate = document.getElementById('backdate');
+  const dateWrap = document.getElementById('dateWrap');
+  const sessionDate = document.getElementById('sessionDate');
+  const startTime = document.getElementById('startTime');
+  const ayHint = document.getElementById('ayHint');
+  const autoHint = document.getElementById('autoHint');
+
+  let lastFocus = null;
+  let submissionId = newId();
+  function newId() {
+    return (crypto.randomUUID) ? crypto.randomUUID()
+      : 'id-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  }
+
+  function showErr(m){ errBox.textContent = m; errBox.classList.add('show'); }
+  function clearErr(){ errBox.classList.remove('show'); errBox.textContent = ''; }
+
+  // Custom minutes — disabled while hidden so it can't block submission
+  document.querySelectorAll('input[name=duration]').forEach(function(r){
+    r.addEventListener('change', function(){
+      const on = (r.value === 'custom' && r.checked);
+      customWrap.style.display = on ? 'block' : 'none';
+      customMins.disabled = !on;
+      if (on) customMins.focus(); else customPreview.textContent = '';
+    });
+  });
+  customMins.addEventListener('input', function(){
+    const m = parseInt(customMins.value, 10);
+    customPreview.textContent = (!isNaN(m) && m > 0 && m <= 600)
+      ? m + ' min = ' + (m/60).toFixed(2) + ' CPD hrs' : '';
+  });
+
+  // Backdating
+  function ayLabel(d){
+    const y = d.getFullYear();
+    const s = (d.getMonth() >= 8) ? y : y - 1;
+    const yy = n => String(n).slice(-2);
+    return yy(s) + '-' + yy(s+1);
+  }
+  backdate.addEventListener('change', function(){
+    const on = backdate.checked;
+    dateWrap.style.display = on ? 'block' : 'none';
+    sessionDate.disabled = !on;
+    startTime.disabled = !on;
+    autoHint.textContent = on ? 'Filed by the session date you enter.'
+                              : 'Date & time are added automatically.';
+    if (on) {
+      if (!sessionDate.value) sessionDate.value = new Date().toISOString().slice(0,10);
+      sessionDate.dispatchEvent(new Event('change'));
+      sessionDate.focus();
+    } else { ayHint.textContent = ''; }
+  });
+  sessionDate.addEventListener('change', function(){
+    if (!sessionDate.value) { ayHint.textContent = ''; return; }
+    const p = sessionDate.value.split('-');
+    const d = new Date(+p[0], +p[1]-1, +p[2]);
+    ayHint.textContent = 'Will be filed under ' + ayLabel(d) + ' — ' +
+      ('0'+d.getDate()).slice(-2) + '/' + ('0'+(d.getMonth()+1)).slice(-2) + '/' + d.getFullYear();
+  });
+
+  // Offline queue
+  function readQueue(){ try { return JSON.parse(localStorage.getItem(QUEUE_KEY)) || []; } catch(e){ return []; } }
+  function writeQueue(q){ try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); } catch(e){} }
+  function enqueue(p){ const q = readQueue(); q.push(p); writeQueue(q); showQueue(); }
+  function showQueue(){
+    const n = readQueue().length;
+    if (n) { queuedBox.textContent = n + ' session(s) waiting to upload — they will send automatically.';
+             queuedBox.classList.add('show'); }
+    else queuedBox.classList.remove('show');
+  }
+  async function flushQueue(){
+    if (!WEB_APP_URL) return;
+    const q = readQueue(); if (!q.length) return;
+    const remaining = [];
+    for (const p of q) {
+      try {
+        const r = await post(p);
+        if (!r.ok && !r.duplicate) remaining.push(p);
+      } catch(e){ remaining.push(p); }
+    }
+    writeQueue(remaining); showQueue();
+  }
+  window.addEventListener('online', flushQueue);
+  window.addEventListener('load', function(){ showQueue(); flushQueue(); });
+
+  async function post(payload){
+    const res = await fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  }
+
+  function openDone(msg){
+    lastFocus = document.activeElement;
+    doneMsg.textContent = msg;
+    overlay.classList.add('show');
+    againBtn.focus();
+  }
+  function closeDone(){
+    overlay.classList.remove('show');
+    form.reset();
+    customWrap.style.display = 'none'; customMins.disabled = true; customPreview.textContent = '';
+    dateWrap.style.display = 'none'; sessionDate.disabled = true; startTime.disabled = true; ayHint.textContent = '';
+    autoHint.textContent = 'Date & time are added automatically.';
+    clearErr();
+    submissionId = newId();
+    (lastFocus || document.getElementById('l1')).focus();
+  }
+  againBtn.addEventListener('click', closeDone);
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && overlay.classList.contains('show')) closeDone();
+  });
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    clearErr();
+
+    const level = (form.querySelector('input[name=level]:checked') || {}).value;
+    const teachers = Array.from(form.querySelectorAll('input[name=teacher]:checked')).map(c => c.value);
+    const topic = document.getElementById('topic').value.trim();
+    const durSel = (form.querySelector('input[name=duration]:checked') || {}).value;
+
+    if (!level) return showErr('Please pick a curriculum level.');
+    if (!teachers.length) return showErr('Please select at least one attendee.');
+    if (!durSel) return showErr('Please choose a duration.');
+
+    let minutes;
+    if (durSel === 'custom') {
+      minutes = parseInt(customMins.value, 10);
+      if (isNaN(minutes) || minutes < 1) return showErr('Please enter the meeting length in minutes.');
+      if (minutes > 600) return showErr('Duration looks too long — maximum is 600 minutes.');
+    } else {
+      minutes = parseInt(durSel, 10);
+    }
+
+    if (!topic) return showErr('Please add a short topic.');
+
+    const payload = { submissionId, secret: SHARED_SECRET, level, teachers, topic, minutes };
+    if (backdate.checked) {
+      if (!sessionDate.value) return showErr('Please choose the session date.');
+      payload.sessionDate = sessionDate.value;
+      payload.startTime = startTime.value || '09:00';
+    }
+
+    if (!WEB_APP_URL) {
+      return openDone('Preview only — connect WEB_APP_URL to save to the spreadsheet.');
+    }
+
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const r = await post(payload);
+      if (r.ok) {
+        openDone(r.duplicate ? 'Already logged.'
+          : r.tab + ' · ' + r.year + ' · ' + r.date + ' · ' + r.hours + ' hrs · row ' + r.row);
+        flushQueue();
+      } else {
+        showErr(r.error || 'Could not save — please try again.');
+      }
+    } catch (err) {
+      enqueue(payload);
+      openDone('Saved on this device — it will upload when you are back online.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Log Session ✓';
+    }
+  });
+</script>
+</body>
+</html>
